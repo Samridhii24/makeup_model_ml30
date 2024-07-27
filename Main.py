@@ -61,20 +61,6 @@ def apply_lipstick(frame, landmarks, lipstick_color):
     frame = cv2.addWeighted(frame, 1, colored_mask, 0.5, 0)
     return frame
 
-#apply foundation
-def apply_foundation(frame, landmarks, foundation_color):
-    h, w, _ = frame.shape
-    global frame_width, frame_height
-    frame_width, frame_height = w, h
-    
-    mask = create_foundation_mask(frame, landmarks)
-
-    colored_mask = np.zeros_like(frame)
-    colored_mask[mask == 255] = foundation_color
-
-    frame = cv2.addWeighted(frame, 1, colored_mask, 0.5, 0)
-    return frame
-
 #apply eyeliner
 def apply_eyeliner(frame, landmarks, eyeliner_color):
     h, w, _ = frame.shape
@@ -126,6 +112,20 @@ def apply_eyebrow_color(frame, landmarks, eyebrow_color):
     frame = cv2.addWeighted(frame, 1, colored_mask, 0.5, 0)
     return frame
 
+#apply foundation
+def apply_foundation(frame, landmarks, foundation_color):
+    h, w, _ = frame.shape
+    global frame_width, frame_height
+    frame_width, frame_height = w, h
+    
+    mask = create_foundation_mask(frame, landmarks)
+
+    colored_mask = np.zeros_like(frame)
+    colored_mask[mask == 255] = foundation_color
+
+    frame = cv2.addWeighted(frame, 1, colored_mask, 0.5, 0)
+    return frame
+
 # Streamlit UI
 st.title('Virtual Makeup Try-On')
 
@@ -140,15 +140,7 @@ if makeup_option == 'Lipstick':
         'Plum Perfection' : (66, 46, 145),
         'Vivid Orchid' : (121, 30, 166)
     }
-    lipstick_color_bgr = colors.get(lipstick_color, (35,32,116))
-elif makeup_option == 'Foundation':
-    foundation_color = st.sidebar.radio('Choose LFoundation Color', ['Natural Beige', 'Toffee', 'Warm Nude'])
-    colors = {
-        'Natural Beige' : (126, 169, 232),
-        'Toffee' : (96, 148, 215),
-        'Warm Nude' :  (156, 196, 254)
-    }
-    foundation_color_bgr = colors.get(foundation_color, (96,148,215) )
+    lipstick_color_bgr = colors.get(lipstick_color, (30, 30, 166))
 
 elif makeup_option == 'Eyeliner':
     eyeliner_color = st.sidebar.radio('Choose Eyeliner Color', ['Black', 'Blue'])
@@ -166,11 +158,20 @@ elif makeup_option == 'Eyebrows':
     }
     eyebrow_color_bgr = colors.get(eyebrow_color, (27,46,73))
 
+elif makeup_option == 'Foundation':
+    foundation_color = st.sidebar.radio('Choose LFoundation Color', ['Natural Beige', 'Toffee', 'Warm Nude'])
+    colors = {
+        'Natural Beige' : (126, 169, 232),
+        'Toffee' : (96, 148, 215),
+        'Warm Nude' :  (156, 196, 254)
+    }
+    foundation_color_bgr = colors.get(foundation_color, (96,148,215) )
+
 st.write("Ensure your webcam is enabled and positioned correctly.")
 frame_placeholder = st.empty()
 
 
-def process_video_stream(lipstick_color_bgr=None, foundation_color_bgr=None, eyeliner_color_bgr=None, eyebrow_color_bgr=None):
+def process_video_stream(lipstick_color_bgr=None, eyeliner_color_bgr=None, eyebrow_color_bgr=None, foundation_color_bgr=None):
     cap = cv2.VideoCapture(0)
     while cap.isOpened():
         success, frame = cap.read()
@@ -183,20 +184,20 @@ def process_video_stream(lipstick_color_bgr=None, foundation_color_bgr=None, eye
         if results.multi_face_landmarks:
             for face_landmarks in results.multi_face_landmarks:
                 landmarks = face_landmarks.landmark
-                # Apply makeup effect based on the selected option
+                
                 if makeup_option == 'Lipstick':
                     frame = apply_lipstick(frame, landmarks, lipstick_color_bgr)
-                elif makeup_option == 'Foundation':
-                    frame = apply_foundation(frame, landmarks, foundation_color_bgr)
                 elif makeup_option == 'Eyeliner':
                     frame = apply_eyeliner(frame, landmarks, eyeliner_color_bgr)
                 elif makeup_option == 'Eyebrows':
                     frame = apply_eyebrow_color(frame, landmarks, eyebrow_color_bgr)
+                elif makeup_option == 'Foundation':
+                    frame = apply_foundation(frame, landmarks, foundation_color_bgr)
 
-        # Convert frame to RGB for Streamlit
+        
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        # Update image in Streamlit placeholder
+        
         frame_placeholder.image(frame_rgb, channels='RGB', use_column_width=True)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -204,12 +205,11 @@ def process_video_stream(lipstick_color_bgr=None, foundation_color_bgr=None, eye
 
     cap.release()
 
-# Start video processing with selected makeup option
 if makeup_option == 'Lipstick':
     process_video_stream(lipstick_color_bgr=lipstick_color_bgr)
-elif makeup_option == 'Foundation':
-    process_video_stream(foundation_color_bgr=foundation_color_bgr)
 elif makeup_option == 'Eyeliner':
     process_video_stream(eyeliner_color_bgr=eyeliner_color_bgr)
 elif makeup_option == 'Eyebrows':
     process_video_stream(eyebrow_color_bgr=eyebrow_color_bgr)
+elif makeup_option == 'Foundation':
+    process_video_stream(foundation_color_bgr=foundation_color_bgr)
